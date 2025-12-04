@@ -45,7 +45,7 @@ const HomeScreen = () => {
             <View className="mb-8">
                 <TouchableOpacity
                     className="bg-white p-4 rounded-xl w-full mb-3 shadow-sm flex-row items-center border border-gray-100"
-                    onPress={() => console.log('Navigate to Input Log')} // Placeholder navigation
+                    onPress={() => navigation.navigate('InputLog')}
                 >
                     <View className="bg-blue-100 p-3 rounded-full mr-4">
                         <ClipboardList color="#2563eb" size={24} />
@@ -55,7 +55,7 @@ const HomeScreen = () => {
 
                 <TouchableOpacity
                     className="bg-white p-4 rounded-xl w-full mb-3 shadow-sm flex-row items-center border border-gray-100"
-                    onPress={() => console.log('Navigate to Planting Log')} // Placeholder navigation
+                    onPress={() => navigation.navigate('PlantingLog')}
                 >
                     <View className="bg-green-100 p-3 rounded-full mr-4">
                         <Sprout color="#16a34a" size={24} />
@@ -65,7 +65,7 @@ const HomeScreen = () => {
 
                 <TouchableOpacity
                     className="bg-white p-4 rounded-xl w-full shadow-sm flex-row items-center border border-gray-100"
-                    onPress={() => console.log('Navigate to Harvest Log')} // Placeholder navigation
+                    onPress={() => navigation.navigate('HarvestLog')}
                 >
                     <View className="bg-orange-100 p-3 rounded-full mr-4">
                         <Wheat color="#ea580c" size={24} />

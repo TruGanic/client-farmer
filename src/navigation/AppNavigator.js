@@ -4,6 +4,9 @@ import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import UserRegistrationScreen from '../screens/UserRegistrationScreen';
 import FarmRegistrationScreen from '../screens/FarmRegistrationScreen';
+import InputLogScreen from '../screens/InputLogScreen';
+import PlantingLogScreen from '../screens/PlantingLogScreen';
+import HarvestLogScreen from '../screens/HarvestLogScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -30,6 +33,21 @@ const AppNavigator = () => {
                 name="Home"
                 component={HomeScreen}
                 options={{ title: 'Dashboard' }}
+            />
+            <Stack.Screen
+                name="InputLog"
+                component={InputLogScreen}
+                options={{ title: 'Log Inputs' }}
+            />
+            <Stack.Screen
+                name="PlantingLog"
+                component={PlantingLogScreen}
+                options={{ title: 'Log Planting' }}
+            />
+            <Stack.Screen
+                name="HarvestLog"
+                component={HarvestLogScreen}
+                options={{ title: 'Log Harvest' }}
             />
         </Stack.Navigator>
     );
