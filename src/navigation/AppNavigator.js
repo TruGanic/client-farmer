@@ -7,6 +7,7 @@ import FarmRegistrationScreen from '../screens/FarmRegistrationScreen';
 import InputLogScreen from '../screens/InputLogScreen';
 import PlantingLogScreen from '../screens/PlantingLogScreen';
 import HarvestLogScreen from '../screens/HarvestLogScreen';
+import HistoryScreen from '../screens/HistoryScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -48,6 +49,11 @@ const AppNavigator = () => {
                 name="HarvestLog"
                 component={HarvestLogScreen}
                 options={{ title: 'Log Harvest' }}
+            />
+            <Stack.Screen
+                name="History"
+                component={HistoryScreen}
+                options={{ title: 'Farm History' }}
             />
         </Stack.Navigator>
     );

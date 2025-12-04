@@ -72,6 +72,16 @@ const HomeScreen = () => {
                     </View>
                     <Text className="text-gray-800 font-bold text-lg">Log Harvest</Text>
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    className="bg-white p-4 rounded-xl w-full mt-3 shadow-sm flex-row items-center border border-gray-100"
+                    onPress={() => navigation.navigate('History')}
+                >
+                    <View className="bg-purple-100 p-3 rounded-full mr-4">
+                        <ClipboardList color="#9333ea" size={24} />
+                    </View>
+                    <Text className="text-gray-800 font-bold text-lg">View History</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Recent Activity Widget */}
