@@ -10,7 +10,10 @@ const HarvestLogScreen = () => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [cropVariety, setCropVariety] = useState('');
     const [yieldAmount, setYieldAmount] = useState('');
+    const [plot, setPlot] = useState('');
     const [destination, setDestination] = useState('');
+
+    const plots = ['Plot A', 'Plot B', 'Plot C', 'Greenhouse 1'];
 
     const destinations = ['Market', 'Exporter', 'Home'];
 
@@ -25,7 +28,9 @@ const HarvestLogScreen = () => {
         const record = {
             type: 'Harvest Log',
             date: date.toISOString().split('T')[0],
+            date: date.toISOString().split('T')[0],
             cropVariety,
+            plot,
             yieldAmount: `${yieldAmount} kg`,
             destination,
         };
@@ -96,6 +101,16 @@ const HarvestLogScreen = () => {
                 )}
             </View>
 
+
+
+            {/* Where Harvested */}
+            <Dropdown
+                label="Where Harvested"
+                value={plot}
+                options={plots}
+                onSelect={setPlot}
+            />
+
             {/* Crop Variety */}
             <View className="mb-4">
                 <Text className="text-green-800 font-medium mb-1 ml-1">Crop Variety</Text>
@@ -134,7 +149,7 @@ const HarvestLogScreen = () => {
             >
                 <Text className="text-white font-bold text-lg">Save Record</Text>
             </TouchableOpacity>
-        </ScrollView>
+        </ScrollView >
     );
 };
 
