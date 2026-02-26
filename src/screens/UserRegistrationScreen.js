@@ -12,9 +12,13 @@ const UserRegistrationScreen = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
 
     const handleContinue = () => {
-        // Basic validation could go here
-        console.log('User Details:', { username, contactNo, email });
-        navigation.navigate('FarmRegistration');
+        if (!username || !contactNo || !email || !password || password !== confirmPassword) {
+            alert("Please fill all fields and ensure passwords match.");
+            return;
+        }
+        navigation.navigate('FarmRegistration', {
+            userDetails: { username, contactNo, email, password }
+        });
     };
 
     return (
