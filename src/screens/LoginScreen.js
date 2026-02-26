@@ -1,17 +1,33 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Leaf } from 'lucide-react-native';
+import { apiClient } from '../api/config';
 
 const LoginScreen = () => {
     const navigation = useNavigation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = () => {
-        console.log('Login attempt:', email);
-        // Navigate to Home on success (mock)
-        navigation.replace('Home');
+    const handleLogin = async () => {
+        if (!email || !password) {
+            Alert.alert('Error', 'Please enter email and password');
+            return;
+        }
+
+        try {
+            const response = await apiClient.post('/auth/login', { email, password });
+
+            if (response.status === 200) {
+                // In a real app, store response.data.token securely here
+                console.log('Login successful! Token:', response.data.token);
+                navigation.replace('Home');
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Invalid credentials or server error';
+            Alert.alert('Login Failed', errorMsg);
+            console.error('Login error:', error);
+        }
     };
 
     return (

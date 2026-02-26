@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { MapPin, QrCode, Sprout } from 'lucide-react-native';
+import { apiClient } from '../api/config';
 
 const FarmRegistrationScreen = () => {
     const navigation = useNavigation();
+    const route = useRoute();
+    const userDetails = route.params?.userDetails || {};
     const [farmName, setFarmName] = useState('');
     const [totalArea, setTotalArea] = useState('');
     const [location, setLocation] = useState(null);
@@ -21,11 +24,27 @@ const FarmRegistrationScreen = () => {
         setSensorId('SENSOR-XYZ-123');
     };
 
-    const handleRegister = () => {
-        console.log('Registering Farm:', { farmName, totalArea, location, sensorId });
-        // In a real app, you'd show a success message here
-        alert('Registration Complete! Please login.');
-        navigation.navigate('Login');
+    const handleRegister = async () => {
+        try {
+            const payload = {
+                ...userDetails,
+                farmName,
+                totalArea,
+                location,
+                sensorId
+            };
+
+            const response = await apiClient.post('/auth/register', payload);
+
+            if (response.status === 201) {
+                Alert.alert('Success', 'Registration Complete! Please login.');
+                navigation.navigate('Login');
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Unknown error occurred';
+            Alert.alert('Registration Failed', errorMsg);
+            console.error('Registration error:', error);
+        }
     };
 
     return (
