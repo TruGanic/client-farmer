@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, ChevronDown } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../api/config';
 
 const InputLogScreen = () => {
     const navigation = useNavigation();
@@ -24,17 +26,39 @@ const InputLogScreen = () => {
         }
     };
 
-    const handleSave = () => {
-        const record = {
-            type: 'Input Log',
-            date: date.toISOString().split('T')[0],
-            category,
-            productName,
-            plot,
-            quantity: `${quantity} ${unit}`,
-        };
-        console.log('Saved Record:', JSON.stringify(record, null, 2));
-        navigation.goBack();
+    const handleSave = async () => {
+        if (!category || !productName || !plot || !quantity) {
+            Alert.alert('Validation Error', 'Please fill in all required fields.');
+            return;
+        }
+
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+
+            const payload = {
+                zoneId: plot,
+                date: date.toISOString(),
+                inputCategory: category,
+                productName,
+                quantity: parseFloat(quantity),
+                unit,
+            };
+
+            const response = await apiClient.post('/logs/input', payload, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 201) {
+                Alert.alert('Success', 'Input log created successfully!');
+                navigation.goBack();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to create input log';
+            Alert.alert('Error', errorMsg);
+            console.error('Input log error:', error);
+        }
     };
 
     // Custom Dropdown Component (simplified for demo)

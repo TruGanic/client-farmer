@@ -1,29 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicator, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { ClipboardList, Sprout, Wheat, CheckCircle, Clock, LogOut, QrCode } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
+import { apiClient } from '../api/config';
 
 const HomeScreen = () => {
     const navigation = useNavigation();
     const [qrVisible, setQrVisible] = useState(false);
     const [authId, setAuthId] = useState(null);
+    const [userName, setUserName] = useState('Farmer');
+    const [recentActivity, setRecentActivity] = useState([]);
+    const [loadingRecent, setLoadingRecent] = useState(true);
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const storedAuthId = await AsyncStorage.getItem('authId');
-                if (storedAuthId) {
-                    setAuthId(storedAuthId);
-                }
-            } catch (error) {
-                console.error("Error fetching user data from storage", error);
+    const fetchUserData = async () => {
+        try {
+            const storedAuthId = await AsyncStorage.getItem('authId');
+            const storedUserName = await AsyncStorage.getItem('userName');
+
+            if (storedAuthId) setAuthId(storedAuthId);
+            if (storedUserName) setUserName(storedUserName);
+        } catch (error) {
+            console.error("Error fetching user data from storage", error);
+        }
+    };
+
+    const fetchRecentActivity = async () => {
+        setLoadingRecent(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const response = await apiClient.get('/logs/recent', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.data && response.data.recentActivity) {
+                setRecentActivity(response.data.recentActivity);
             }
-        };
+        } catch (error) {
+            console.error('Error fetching recent activity:', error);
+        } finally {
+            setLoadingRecent(false);
+        }
+    };
 
-        fetchUserData();
-    }, []);
+    useFocusEffect(
+        useCallback(() => {
+            fetchUserData();
+            fetchRecentActivity();
+        }, [])
+    );
 
     const handleSignout = async () => {
         try {
@@ -36,20 +61,34 @@ const HomeScreen = () => {
         }
     };
 
-    // Mock Data for Recent Activity
-    const recentActivity = [
-        { id: 1, action: 'Applied Compost', time: '2 days ago', icon: <Sprout size={20} color="#16a34a" /> },
-        { id: 2, action: 'Watering - Sector A', time: '3 days ago', icon: <Clock size={20} color="#3b82f6" /> },
-        { id: 3, action: 'Harvested Tomatoes', time: '1 week ago', icon: <Wheat size={20} color="#f97316" /> },
-    ];
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning,';
+        if (hour < 18) return 'Good Afternoon,';
+        return 'Good Evening,';
+    };
+
+    const getIconForActivity = (type) => {
+        switch (type) {
+            case 'Planting': return <Sprout size={20} color="#16a34a" />;
+            case 'Harvest': return <Wheat size={20} color="#ea580c" />;
+            case 'Input': return <ClipboardList size={20} color="#2563eb" />;
+            default: return <Clock size={20} color="#9ca3af" />;
+        }
+    };
+
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    };
 
     return (
         <ScrollView className="flex-1 bg-gray-50 p-6">
             {/* Header */}
             <View className="mb-6 mt-4 flex-row justify-between items-center">
                 <View>
-                    <Text className="text-gray-500 text-lg">Good Morning,</Text>
-                    <Text className="text-3xl font-bold text-gray-800">Farmer Silva</Text>
+                    <Text className="text-gray-500 text-lg">{getGreeting()}</Text>
+                    <Text className="text-3xl font-bold text-gray-800">{userName}</Text>
                 </View>
                 <TouchableOpacity
                     className="bg-red-50 p-3 rounded-full"
@@ -116,18 +155,28 @@ const HomeScreen = () => {
 
             {/* Recent Activity Widget */}
             <Text className="text-xl font-bold text-gray-800 mb-4">Recent Activity</Text>
-            <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-8">
-                {recentActivity.map((item, index) => (
-                    <View key={item.id} className={`flex-row items-center py-3 ${index !== recentActivity.length - 1 ? 'border-b border-gray-100' : ''}`}>
-                        <View className="bg-gray-50 p-2 rounded-full mr-3">
-                            {item.icon}
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-gray-800 font-medium">{item.action}</Text>
-                            <Text className="text-gray-500 text-xs">{item.time}</Text>
-                        </View>
+            <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-8 min-h-[120px]">
+                {loadingRecent ? (
+                    <View className="flex-1 justify-center items-center py-6">
+                        <ActivityIndicator size="small" color="#16a34a" />
                     </View>
-                ))}
+                ) : recentActivity.length > 0 ? (
+                    recentActivity.map((item, index) => (
+                        <View key={item.id} className={`flex-row items-center py-3 ${index !== recentActivity.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                            <View className="bg-gray-50 p-2 rounded-full mr-3">
+                                {getIconForActivity(item.type)}
+                            </View>
+                            <View className="flex-1">
+                                <Text className="text-gray-800 font-medium">{item.action}</Text>
+                                <Text className="text-gray-500 text-xs">{formatDate(item.date)}</Text>
+                            </View>
+                        </View>
+                    ))
+                ) : (
+                    <View className="flex-1 justify-center items-center py-6">
+                        <Text className="text-gray-500">No recent activity detected.</Text>
+                    </View>
+                )}
             </View>
             {/* Show QR Code Button */}
             <TouchableOpacity

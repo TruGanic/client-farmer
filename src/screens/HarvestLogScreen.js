@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, ChevronDown } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../api/config';
 
 const HarvestLogScreen = () => {
     const navigation = useNavigation();
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [cropVariety, setCropVariety] = useState('');
     const [yieldAmount, setYieldAmount] = useState('');
     const [plot, setPlot] = useState('');
     const [destination, setDestination] = useState('');
 
     const plots = ['Plot A', 'Plot B', 'Plot C', 'Greenhouse 1'];
 
-    const destinations = ['Market', 'Exporter', 'Home'];
+    const destinations = ['Market', 'Home'];
 
     const handleDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -24,18 +25,37 @@ const HarvestLogScreen = () => {
         }
     };
 
-    const handleSave = () => {
-        const record = {
-            type: 'Harvest Log',
-            date: date.toISOString().split('T')[0],
-            date: date.toISOString().split('T')[0],
-            cropVariety,
-            plot,
-            yieldAmount: `${yieldAmount} kg`,
-            destination,
-        };
-        console.log('Saved Record:', JSON.stringify(record, null, 2));
-        navigation.goBack();
+    const handleSave = async () => {
+        if (!plot || !yieldAmount || !destination) {
+            Alert.alert('Validation Error', 'Please fill in all required fields.');
+            return;
+        }
+
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+
+            const payload = {
+                "zoneId": plot,
+                "date": date.toISOString(),
+                "yieldAmount": parseFloat(yieldAmount),
+                "marketDestination": destination
+            };
+
+            const response = await apiClient.post('/logs/harvest', payload, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 201) {
+                Alert.alert('Success', 'Harvest log created and crop batch closed successfully!');
+                navigation.goBack();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to create harvest log';
+            Alert.alert('Error', errorMsg);
+            console.error('Harvest log error:', error);
+        }
     };
 
     // Custom Dropdown Component
@@ -111,17 +131,6 @@ const HarvestLogScreen = () => {
                 onSelect={setPlot}
             />
 
-            {/* Crop Variety */}
-            <View className="mb-4">
-                <Text className="text-green-800 font-medium mb-1 ml-1">Crop Variety</Text>
-                <TextInput
-                    className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
-                    placeholder="e.g. Tomato - Roma"
-                    value={cropVariety}
-                    onChangeText={setCropVariety}
-                />
-            </View>
-
             {/* Yield Amount */}
             <View className="mb-4">
                 <Text className="text-green-800 font-medium mb-1 ml-1">Yield Amount (kg)</Text>
@@ -149,7 +158,7 @@ const HarvestLogScreen = () => {
             >
                 <Text className="text-white font-bold text-lg">Save Record</Text>
             </TouchableOpacity>
-        </ScrollView >
+        </ScrollView>
     );
 };
 

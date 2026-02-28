@@ -22,9 +22,10 @@ const LoginScreen = () => {
             if (response.status === 200) {
                 const { token, farmer } = response.data;
 
-                // Securely store token and authId
+                // Securely store token, authId, and username
                 await AsyncStorage.setItem('userToken', token);
                 await AsyncStorage.setItem('authId', farmer.authId);
+                await AsyncStorage.setItem('userName', farmer.username || 'Farmer');
 
                 console.log('Login successful! Auth ID stored:', farmer.authId);
                 navigation.replace('Home');
