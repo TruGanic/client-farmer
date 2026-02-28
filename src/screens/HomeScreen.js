@@ -1,10 +1,40 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
-import { ClipboardList, Sprout, Wheat, CheckCircle, Clock, LogOut } from 'lucide-react-native';
+import { ClipboardList, Sprout, Wheat, CheckCircle, Clock, LogOut, QrCode } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
 
 const HomeScreen = () => {
     const navigation = useNavigation();
+    const [qrVisible, setQrVisible] = useState(false);
+    const [authId, setAuthId] = useState(null);
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const storedAuthId = await AsyncStorage.getItem('authId');
+                if (storedAuthId) {
+                    setAuthId(storedAuthId);
+                }
+            } catch (error) {
+                console.error("Error fetching user data from storage", error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    const handleSignout = async () => {
+        try {
+            await AsyncStorage.removeItem('userToken');
+            await AsyncStorage.removeItem('authId');
+            console.log('User signed out successfully');
+            navigation.replace('Login');
+        } catch (error) {
+            console.error('Error signing out', error);
+        }
+    };
 
     // Mock Data for Recent Activity
     const recentActivity = [
@@ -23,7 +53,7 @@ const HomeScreen = () => {
                 </View>
                 <TouchableOpacity
                     className="bg-red-50 p-3 rounded-full"
-                    onPress={() => navigation.replace('Login')}
+                    onPress={handleSignout}
                 >
                     <LogOut color="#ef4444" size={24} />
                 </TouchableOpacity>
@@ -99,6 +129,55 @@ const HomeScreen = () => {
                     </View>
                 ))}
             </View>
+            {/* Show QR Code Button */}
+            <TouchableOpacity
+                className="bg-green-600 p-4 rounded-xl items-center mb-10 shadow-sm flex-row justify-center"
+                onPress={() => setQrVisible(true)}
+            >
+                <QrCode color="white" size={24} className="mr-2" />
+                <Text className="text-white font-bold text-lg ml-2">Show Farmer ID (QR)</Text>
+            </TouchableOpacity>
+
+            {/* QR Code Modal */}
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={qrVisible}
+                onRequestClose={() => setQrVisible(false)}
+            >
+                <View className="flex-1 justify-center items-center bg-black/50">
+                    <View className="bg-white p-6 rounded-2xl items-center w-80">
+                        <Text className="text-xl font-bold text-gray-800 mb-4">Your Farmer ID</Text>
+
+                        <View className="bg-white p-4 rounded-xl border border-gray-100 mb-6 shadow-sm">
+                            {authId ? (
+                                <QRCode
+                                    value={authId}
+                                    size={200}
+                                    color="#16a34a"
+                                    backgroundColor="white"
+                                />
+                            ) : (
+                                <View style={{ height: 200, justifyContent: 'center', alignItems: 'center' }}>
+                                    <ActivityIndicator size="large" color="#16a34a" />
+                                    <Text className="mt-2 text-gray-500">Loading ID...</Text>
+                                </View>
+                            )}
+                        </View>
+
+                        <Text className="text-gray-500 text-center text-sm mb-6">
+                            Scan this code to quickly verify your identity.
+                        </Text>
+
+                        <TouchableOpacity
+                            className="bg-gray-100 p-4 rounded-xl w-full items-center"
+                            onPress={() => setQrVisible(false)}
+                        >
+                            <Text className="text-gray-800 font-bold">Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScrollView>
     );
 };

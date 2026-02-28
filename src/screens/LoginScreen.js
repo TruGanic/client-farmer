@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Leaf } from 'lucide-react-native';
 import { apiClient } from '../api/config';
 
@@ -19,8 +20,13 @@ const LoginScreen = () => {
             const response = await apiClient.post('/auth/login', { email, password });
 
             if (response.status === 200) {
-                // In a real app, store response.data.token securely here
-                console.log('Login successful! Token:', response.data.token);
+                const { token, farmer } = response.data;
+
+                // Securely store token and authId
+                await AsyncStorage.setItem('userToken', token);
+                await AsyncStorage.setItem('authId', farmer.authId);
+
+                console.log('Login successful! Auth ID stored:', farmer.authId);
                 navigation.replace('Home');
             }
         } catch (error) {
