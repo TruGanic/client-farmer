@@ -1,34 +1,67 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
-import { Sprout, Wheat, ClipboardList, Calendar } from 'lucide-react-native';
-
-// Mock Data
-const mockInputLogs = [
-    { id: '1', date: '2023-10-01', category: 'Organic Fertilizer', productName: 'Compost', quantity: '50 kg', location: 'Plot A' },
-    { id: '2', date: '2023-10-05', category: 'Chemical Fertilizer', productName: 'Urea', quantity: '10 kg', location: 'Plot B' },
-    { id: '3', date: '2023-10-10', category: 'Pesticide', productName: 'Neem Oil', quantity: '2 L', location: 'Greenhouse 1' },
-    { id: '4', date: '2023-10-15', category: 'Organic Fertilizer', productName: 'Manure', quantity: '100 kg', location: 'Plot C' },
-    { id: '5', date: '2023-10-20', category: 'Chemical Fertilizer', productName: 'NPK 15-15-15', quantity: '25 kg', location: 'Plot A' },
-];
-
-const mockPlantingLogs = [
-    { id: '1', date: '2023-09-01', cropVariety: 'Tomato - Roma', seedAmount: '500 seeds', areaCovered: '0.5 Acres' },
-    { id: '2', date: '2023-09-05', cropVariety: 'Lettuce - Iceberg', seedAmount: '1000 seeds', areaCovered: '0.2 Acres' },
-    { id: '3', date: '2023-09-10', cropVariety: 'Carrot - Nantes', seedAmount: '200 g', areaCovered: '0.3 Acres' },
-    { id: '4', date: '2023-09-15', cropVariety: 'Spinach', seedAmount: '100 g', areaCovered: '0.1 Acres' },
-    { id: '5', date: '2023-09-20', cropVariety: 'Pepper - Bell', seedAmount: '300 seedlings', areaCovered: '0.4 Acres' },
-];
-
-const mockHarvestLogs = [
-    { id: '1', date: '2023-11-01', cropVariety: 'Tomato - Roma', yieldAmount: '150 kg', marketDestination: 'Market' },
-    { id: '2', date: '2023-11-05', cropVariety: 'Lettuce - Iceberg', yieldAmount: '50 kg', marketDestination: 'Home' },
-    { id: '3', date: '2023-11-10', cropVariety: 'Carrot - Nantes', yieldAmount: '80 kg', marketDestination: 'Exporter' },
-    { id: '4', date: '2023-11-15', cropVariety: 'Spinach', yieldAmount: '20 kg', marketDestination: 'Market' },
-    { id: '5', date: '2023-11-20', cropVariety: 'Pepper - Bell', yieldAmount: '60 kg', marketDestination: 'Market' },
-];
+import React, { useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Alert, Modal } from 'react-native';
+import { Sprout, Wheat, ClipboardList, Calendar, Truck } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../api/config';
+import { useFocusEffect } from '@react-navigation/native';
 
 const HistoryScreen = () => {
     const [activeTab, setActiveTab] = useState('Inputs');
+    const [inputs, setInputs] = useState([]);
+    const [plantings, setPlantings] = useState([]);
+    const [harvests, setHarvests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedHarvest, setSelectedHarvest] = useState(null);
+    const [modalVisible, setModalVisible] = useState(false);
+
+    const fetchHistory = async () => {
+        setLoading(true);
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const response = await apiClient.get('/logs/history', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const { plantings: fetchedPlantings, inputs: fetchedInputs, harvests: fetchedHarvests } = response.data;
+            setPlantings(fetchedPlantings || []);
+            setInputs(fetchedInputs || []);
+            setHarvests(fetchedHarvests || []);
+        } catch (error) {
+            console.error('Error fetching history:', error);
+            Alert.alert('Error', 'Failed to load history data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchHistory();
+        }, [])
+    );
+
+    const handleTransport = async () => {
+        if (!selectedHarvest) return;
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+            const response = await apiClient.patch(`/logs/harvest/${selectedHarvest.id}/transport`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.status === 200) {
+                // Update local state to immediately show visual feedback
+                setHarvests(prevHarvests =>
+                    prevHarvests.map(h =>
+                        h.id === selectedHarvest.id ? { ...h, status: 'Transported' } : h
+                    )
+                );
+                Alert.alert('Success', 'Harvest marked as transported');
+                setModalVisible(false);
+            }
+        } catch (error) {
+            console.error('Error updating transport status:', error);
+            Alert.alert('Error', 'Failed to update status');
+        }
+    };
 
     const renderTabButton = (tabName) => (
         <TouchableOpacity
@@ -90,7 +123,13 @@ const HistoryScreen = () => {
     );
 
     const renderHarvestItem = ({ item }) => (
-        <View className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100">
+        <TouchableOpacity
+            className="bg-white rounded-xl p-4 mb-3 shadow-sm border border-gray-100"
+            onPress={() => {
+                setSelectedHarvest(item);
+                setModalVisible(true);
+            }}
+        >
             <View className="flex-row justify-between items-start">
                 <View className="flex-row items-center">
                     <View className="bg-orange-100 p-2 rounded-full mr-3">
@@ -103,18 +142,25 @@ const HistoryScreen = () => {
                 </View>
                 <Text className="text-gray-400 text-xs">{item.date}</Text>
             </View>
-            <View className="mt-3 flex-row justify-between border-t border-gray-100 pt-2">
-                <Text className="text-gray-600">Yield: <Text className="font-bold">{item.yieldAmount}</Text></Text>
-                <Text className="text-gray-600">Dest: <Text className="font-bold">{item.marketDestination}</Text></Text>
+            <View className="mt-3 flex-row justify-between border-t border-gray-100 pt-2 items-center">
+                <View>
+                    <Text className="text-gray-600">Yield: <Text className="font-bold">{item.yieldAmount}</Text></Text>
+                    <Text className="text-gray-600">Dest: <Text className="font-bold">{item.marketDestination}</Text></Text>
+                </View>
+                <View className={`px-3 py-1 rounded-full ${item.status === 'Transported' ? 'bg-blue-100' : 'bg-orange-100'}`}>
+                    <Text className={`text-xs font-bold ${item.status === 'Transported' ? 'text-blue-800' : 'text-orange-800'}`}>
+                        {item.status}
+                    </Text>
+                </View>
             </View>
-        </View>
+        </TouchableOpacity>
     );
 
     const getData = () => {
         switch (activeTab) {
-            case 'Inputs': return mockInputLogs;
-            case 'Planting': return mockPlantingLogs;
-            case 'Harvest': return mockHarvestLogs;
+            case 'Inputs': return inputs;
+            case 'Planting': return plantings;
+            case 'Harvest': return harvests;
             default: return [];
         }
     };
@@ -138,13 +184,109 @@ const HistoryScreen = () => {
             </View>
 
             {/* List */}
-            <FlatList
-                data={getData()}
-                renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={{ padding: 16 }}
-                showsVerticalScrollIndicator={false}
-            />
+            {loading ? (
+                <View className="flex-1 justify-center items-center">
+                    <ActivityIndicator size="large" color="#16a34a" />
+                </View>
+            ) : (
+                <FlatList
+                    data={getData()}
+                    renderItem={renderItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={{ padding: 16 }}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <View className="items-center mt-10">
+                            <Calendar size={48} color="#9ca3af" className="mb-4" />
+                            <Text className="text-gray-500 font-medium text-lg">No records found</Text>
+                            <Text className="text-gray-400 text-center mt-2 px-6">
+                                Start tracking your farm activity by creating a new log entry.
+                            </Text>
+                        </View>
+                    }
+                />
+            )}
+
+            {/* Harvest Details Modal */}
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View className="flex-1 justify-center items-center bg-black/50">
+                    <View className="bg-white rounded-3xl w-5/6 p-6 shadow-xl">
+                        {selectedHarvest && (
+                            <>
+                                <View className="flex-row items-center mb-6 border-b border-gray-100 pb-4">
+                                    <View className="bg-orange-100 p-3 rounded-full mr-4">
+                                        <Truck size={24} color="#ea580c" />
+                                    </View>
+                                    <View className="flex-1">
+                                        <Text className="text-xl font-bold text-gray-800">Harvest Details</Text>
+                                        <Text className="text-gray-500 text-sm">{selectedHarvest.cropVariety}</Text>
+                                    </View>
+                                </View>
+
+                                <View className="bg-orange-50/50 p-4 rounded-2xl mb-6 border border-orange-100">
+                                    <View className="flex-row justify-between items-center mb-3">
+                                        <Text className="text-gray-500 font-medium">Batch ID</Text>
+                                        <Text className="font-bold text-gray-800 text-xs bg-white px-2 py-1 rounded-md border border-gray-200">
+                                            {selectedHarvest.batchId}
+                                        </Text>
+                                    </View>
+                                    {(selectedHarvest.organicLevel !== undefined && selectedHarvest.organicLevel !== 'N/A') && (
+                                        <View className="flex-row justify-between items-center mb-3">
+                                            <Text className="text-gray-500 font-medium">Organic Level</Text>
+                                            <View className="bg-green-100 px-2 py-1 rounded-md border border-green-200">
+                                                <Text className="font-bold text-green-800 text-xs">{selectedHarvest.organicLevel}%</Text>
+                                            </View>
+                                        </View>
+                                    )}
+                                    <View className="flex-row justify-between items-center mb-3">
+                                        <Text className="text-gray-500 font-medium">Yield Output</Text>
+                                        <Text className="font-bold text-gray-800">{selectedHarvest.yieldAmount}</Text>
+                                    </View>
+                                    <View className="flex-row justify-between items-center mb-3">
+                                        <Text className="text-gray-500 font-medium">Destination</Text>
+                                        <Text className="font-bold text-gray-800">{selectedHarvest.marketDestination}</Text>
+                                    </View>
+                                    <View className="flex-row justify-between items-center border-t border-orange-200/50 pt-3 mt-1">
+                                        <Text className="text-gray-500 font-medium">Current Status</Text>
+                                        <Text className={`font-bold ${selectedHarvest.status === 'Transported' ? 'text-blue-600' : 'text-orange-600'}`}>
+                                            {selectedHarvest.status}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                {selectedHarvest.status !== 'Transported' ? (
+                                    <View className="flex-row space-x-3">
+                                        <TouchableOpacity
+                                            className="flex-1 bg-gray-100 py-4 rounded-xl items-center"
+                                            onPress={() => setModalVisible(false)}
+                                        >
+                                            <Text className="text-gray-600 font-bold text-base">Close</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            className="flex-[1.5] bg-orange-500 py-4 rounded-xl items-center shadow-sm"
+                                            onPress={handleTransport}
+                                        >
+                                            <Text className="text-white font-bold text-base">Mark Transported</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <TouchableOpacity
+                                        className="w-full bg-gray-100 py-4 rounded-xl items-center"
+                                        onPress={() => setModalVisible(false)}
+                                    >
+                                        <Text className="text-gray-600 font-bold text-base">Close window</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </>
+                        )}
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };

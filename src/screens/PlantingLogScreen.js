@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, ChevronDown } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { apiClient } from '../api/config';
 
 const PlantingLogScreen = () => {
     const navigation = useNavigation();
@@ -22,17 +24,38 @@ const PlantingLogScreen = () => {
         }
     };
 
-    const handleSave = () => {
-        const record = {
-            type: 'Planting Log',
-            date: date.toISOString().split('T')[0],
-            cropVariety,
-            plot,
-            amount,
-            area: `${area} Acres`,
-        };
-        console.log('Saved Record:', JSON.stringify(record, null, 2));
-        navigation.goBack();
+    const handleSave = async () => {
+        if (!plot || !cropVariety || !amount || !area) {
+            Alert.alert('Validation Error', 'Please fill in all required fields.');
+            return;
+        }
+
+        try {
+            const token = await AsyncStorage.getItem('userToken');
+
+            const payload = {
+                zoneId: plot, // 'Plot A', 'Plot B', etc
+                date: date.toISOString(), // Send full ISO string
+                cropVariety,
+                seedQuantity: parseInt(amount, 10),
+                areaCovered: parseFloat(area),
+            };
+
+            const response = await apiClient.post('/logs/planting', payload, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            if (response.status === 201) {
+                Alert.alert('Success', 'Planting log created successfully!');
+                navigation.goBack();
+            }
+        } catch (error) {
+            const errorMsg = error.response?.data?.error || 'Failed to create planting log';
+            Alert.alert('Error', errorMsg);
+            console.error('Planting log error:', error);
+        }
     };
 
     // Custom Dropdown Component (simplified for demo)
