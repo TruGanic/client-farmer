@@ -16,7 +16,7 @@ const InputLogScreen = () => {
     const [quantity, setQuantity] = useState('');
     const [unit, setUnit] = useState('kg');
 
-    const categories = ['Organic Fertilizer', 'Chemical Fertilizer', 'Pesticide'];
+    const categories = ['Organic Fertilizer', 'Pesticide'];
     const plots = ['Plot A', 'Plot B', 'Plot C', 'Greenhouse 1'];
 
     const handleDateChange = (event, selectedDate) => {
@@ -137,7 +137,7 @@ const InputLogScreen = () => {
                 <Text className="text-green-800 font-medium mb-1 ml-1">Product Name</Text>
                 <TextInput
                     className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
-                    placeholder="e.g. Urea, Compost"
+                    placeholder="e.g. Chicken manure, Compost"
                     value={productName}
                     onChangeText={setProductName}
                 />
