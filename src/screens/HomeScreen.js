@@ -105,7 +105,7 @@ const HomeScreen = () => {
                 </View>
                 <View>
                     <Text className="text-green-800 font-bold text-lg">Organic Status: Verified</Text>
-                    <Text className="text-green-600 text-sm">Valid until Dec 2025</Text>
+                    <Text className="text-green-600 text-sm">Valid until Dec 2026</Text>
                 </View>
             </View>
 
