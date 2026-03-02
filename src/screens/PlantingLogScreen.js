@@ -1,21 +1,32 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Calendar, ChevronDown } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { Calendar, ChevronDown, QrCode } from 'lucide-react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiClient } from '../api/config';
 
 const PlantingLogScreen = () => {
     const navigation = useNavigation();
+    const route = useRoute();
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [cropVariety, setCropVariety] = useState('');
     const [plot, setPlot] = useState('');
     const [amount, setAmount] = useState('');
     const [area, setArea] = useState('');
+    const [sensorId, setSensorId] = useState('');
+    const [isScanned, setIsScanned] = useState(false); // New flag to track scan origin
 
     const plots = ['Plot A', 'Plot B', 'Plot C', 'Greenhouse 1'];
+
+    // Listen for QR Scan results passed back from QRScannerScreen
+    React.useEffect(() => {
+        if (route.params?.scannedSensorId) {
+            setSensorId(route.params.scannedSensorId);
+            setIsScanned(true); // Lock the input because it came from a secure scan
+        }
+    }, [route.params?.scannedSensorId]);
 
     const handleDateChange = (event, selectedDate) => {
         setShowDatePicker(false);
@@ -24,9 +35,13 @@ const PlantingLogScreen = () => {
         }
     };
 
+    const handleScanQR = () => {
+        navigation.navigate('QRScanner');
+    };
+
     const handleSave = async () => {
-        if (!plot || !cropVariety || !amount || !area) {
-            Alert.alert('Validation Error', 'Please fill in all required fields.');
+        if (!plot || !cropVariety || !amount || !area || !sensorId) {
+            Alert.alert('Validation Error', 'Please fill in all required fields including Sensor ID.');
             return;
         }
 
@@ -39,6 +54,7 @@ const PlantingLogScreen = () => {
                 cropVariety,
                 seedQuantity: parseInt(amount, 10),
                 areaCovered: parseFloat(area),
+                sensorId
             };
 
             const response = await apiClient.post('/logs/planting', payload, {
@@ -164,13 +180,43 @@ const PlantingLogScreen = () => {
                 />
             </View>
 
+            {/* IoT Device Pairing */}
+            <View className="bg-white p-4 rounded-xl border border-green-200 mb-6">
+                <Text className="text-green-800 font-bold text-lg mb-3">IoT Device Pairing</Text>
+                <Text className="text-gray-500 text-sm mb-4">Link your soil sensor to start monitoring this batch.</Text>
+
+                <TouchableOpacity
+                    className="bg-green-100 border border-green-300 border-dashed p-4 rounded-xl items-center mb-4"
+                    onPress={handleScanQR}
+                >
+                    <QrCode color="#16a34a" size={32} />
+                    <Text className="text-green-700 font-bold mt-2">Scan Sensor QR Code</Text>
+                </TouchableOpacity>
+
+                <Text className="text-center text-gray-400 mb-2">- OR -</Text>
+
+                <View>
+                    <Text className="text-green-700 font-medium mb-1 ml-1">Enter Sensor ID Manually</Text>
+                    <TextInput
+                        className={`bg-gray-50 border border-green-100 rounded-xl p-4 text-gray-800 ${isScanned ? 'opacity-70 bg-gray-200' : ''}`}
+                        placeholder="e.g. SN-12345678"
+                        value={sensorId}
+                        onChangeText={(text) => {
+                            setSensorId(text);
+                            setIsScanned(false); // If they start typing manually, ensure it's unlocked
+                        }}
+                        editable={!isScanned} // Only disable if the current ID was populated via QR Camera
+                    />
+                </View>
+            </View>
+
             <TouchableOpacity
                 className="bg-green-700 p-4 rounded-xl items-center shadow-sm mb-10"
                 onPress={handleSave}
             >
                 <Text className="text-white font-bold text-lg">Save Record</Text>
             </TouchableOpacity>
-        </ScrollView >
+        </ScrollView>
     );
 };
 

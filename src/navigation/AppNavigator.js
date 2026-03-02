@@ -8,6 +8,7 @@ import InputLogScreen from '../screens/InputLogScreen';
 import PlantingLogScreen from '../screens/PlantingLogScreen';
 import HarvestLogScreen from '../screens/HarvestLogScreen';
 import HistoryScreen from '../screens/HistoryScreen';
+import QRScannerScreen from '../screens/QRScannerScreen';
 
 
 const Stack = createNativeStackNavigator();
@@ -54,6 +55,12 @@ const AppNavigator = () => {
                 name="History"
                 component={HistoryScreen}
                 options={{ title: 'Farm History' }}
+            />
+            {/* Modals / Subscreens */}
+            <Stack.Screen
+                name="QRScanner"
+                component={QRScannerScreen}
+                options={{ presentation: 'modal', headerShown: false }}
             />
         </Stack.Navigator>
     );
