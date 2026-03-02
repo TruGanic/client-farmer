@@ -11,17 +11,10 @@ const FarmRegistrationScreen = () => {
     const [farmName, setFarmName] = useState('');
     const [totalArea, setTotalArea] = useState('');
     const [location, setLocation] = useState(null);
-    const [sensorId, setSensorId] = useState('');
 
     const handleGetLocation = () => {
         console.log('Getting location...');
         setLocation('Lat: 12.34, Long: 56.78'); // Mock location
-    };
-
-    const handleScanQR = () => {
-        console.log('Scanning QR Code...');
-        // Mock QR scan result
-        setSensorId('SENSOR-XYZ-123');
     };
 
     const handleRegister = async () => {
@@ -30,8 +23,7 @@ const FarmRegistrationScreen = () => {
                 ...userDetails,
                 farmName,
                 totalArea,
-                location,
-                sensorId
+                location
             };
 
             const response = await apiClient.post('/auth/register', payload);
@@ -99,32 +91,6 @@ const FarmRegistrationScreen = () => {
                                 <MapPin color="white" size={24} />
                             </TouchableOpacity>
                         </View>
-                    </View>
-                </View>
-
-                {/* IoT Device Pairing */}
-                <View className="bg-white p-4 rounded-xl border border-green-200">
-                    <Text className="text-green-800 font-bold text-lg mb-3">IoT Device Pairing</Text>
-                    <Text className="text-gray-500 text-sm mb-4">Link your soil sensor to start monitoring.</Text>
-
-                    <TouchableOpacity
-                        className="bg-green-100 border border-green-300 border-dashed p-4 rounded-xl items-center mb-4"
-                        onPress={handleScanQR}
-                    >
-                        <QrCode color="#16a34a" size={32} />
-                        <Text className="text-green-700 font-bold mt-2">Scan Sensor QR Code</Text>
-                    </TouchableOpacity>
-
-                    <Text className="text-center text-gray-400 mb-2">- OR -</Text>
-
-                    <View>
-                        <Text className="text-green-700 font-medium mb-1 ml-1">Enter Sensor ID Manually</Text>
-                        <TextInput
-                            className="bg-gray-50 border border-green-100 rounded-xl p-4 text-gray-800"
-                            placeholder="e.g. SN-12345678"
-                            value={sensorId}
-                            onChangeText={setSensorId}
-                        />
                     </View>
                 </View>
 
