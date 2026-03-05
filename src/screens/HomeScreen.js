@@ -53,6 +53,7 @@ const HomeScreen = () => {
     const handleSignout = async () => {
         try {
             await AsyncStorage.removeItem('userToken');
+            await AsyncStorage.removeItem('refreshToken');
             await AsyncStorage.removeItem('authId');
             console.log('User signed out successfully');
             navigation.replace('Login');
