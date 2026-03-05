@@ -48,6 +48,32 @@ const HistoryScreen = () => {
             });
 
             if (response.status === 200) {
+                // Blockchain Webhook Integration
+                try {
+                    const blockchainPayload = {
+                        batchId: selectedHarvest.batchId,
+                        farmerId: selectedHarvest.farmerId,
+                        organicLevel: selectedHarvest.organicLevel ? selectedHarvest.organicLevel.toString() : "0",
+                        plantedDate: selectedHarvest.plantedDate,
+                        harvestedDate: selectedHarvest.harvestedDate
+                    };
+
+                    const blockchainUrl = process.env.EXPO_PUBLIC_BLOCKCHAIN_URL || 'http://35.198.229.152:3000/api/farmer/harvest';
+
+                    await fetch(blockchainUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(blockchainPayload)
+                    });
+                    console.log("Blockchain sync successful:", blockchainPayload);
+                } catch (bcError) {
+                    console.error('Error sending data to blockchain:', bcError);
+                    // Proceeding to update UI visually regardless of blockchain failure 
+                }
+
                 // Update local state to immediately show visual feedback
                 setHarvests(prevHarvests =>
                     prevHarvests.map(h =>

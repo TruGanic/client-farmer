@@ -20,10 +20,13 @@ const LoginScreen = () => {
             const response = await apiClient.post('/auth/login', { email, password });
 
             if (response.status === 200) {
-                const { token, farmer } = response.data;
+                const { token, refreshToken, farmer } = response.data;
 
-                // Securely store token, authId, and username
+                // Securely store token, refresh token, authId, and username
                 await AsyncStorage.setItem('userToken', token);
+                if (refreshToken) {
+                    await AsyncStorage.setItem('refreshToken', refreshToken);
+                }
                 await AsyncStorage.setItem('authId', farmer.authId);
                 await AsyncStorage.setItem('userName', farmer.username || 'Farmer');
 
