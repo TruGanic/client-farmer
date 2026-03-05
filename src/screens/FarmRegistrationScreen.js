@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { MapPin, QrCode, Sprout } from 'lucide-react-native';
+import { MapPin, Sprout } from 'lucide-react-native';
+import * as Location from 'expo-location';
 import { apiClient } from '../api/config';
 
 const FarmRegistrationScreen = () => {
@@ -12,9 +13,44 @@ const FarmRegistrationScreen = () => {
     const [totalArea, setTotalArea] = useState('');
     const [location, setLocation] = useState(null);
 
-    const handleGetLocation = () => {
-        console.log('Getting location...');
-        setLocation('Lat: 12.34, Long: 56.78'); // Mock location
+    const handleGetLocation = async () => {
+        try {
+            console.log('Requesting location permissions...');
+            setLocation('Fetching location...');
+
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Denied', 'We need access to your location to register the farm.');
+                setLocation('');
+                return;
+            }
+
+            console.log('Fetching GPS coordinates...');
+            let currentLocation = await Location.getCurrentPositionAsync({});
+
+            console.log('Reverse geocoding coordinates...');
+            let geocode = await Location.reverseGeocodeAsync({
+                latitude: currentLocation.coords.latitude,
+                longitude: currentLocation.coords.longitude
+            });
+
+            if (geocode && geocode.length > 0) {
+                const address = geocode[0];
+                // E.g., "Colombo, Western Province"
+                const readableLocation = [address.city || address.subregion, address.region]
+                    .filter(Boolean)
+                    .join(', ');
+
+                setLocation(readableLocation || `Lat: ${currentLocation.coords.latitude.toFixed(4)}, Lon: ${currentLocation.coords.longitude.toFixed(4)}`);
+            } else {
+                // Fallback to raw coords if reverse geocoding fails
+                setLocation(`Lat: ${currentLocation.coords.latitude.toFixed(4)}, Lon: ${currentLocation.coords.longitude.toFixed(4)}`);
+            }
+        } catch (error) {
+            console.error("Error getting location:", error);
+            Alert.alert('Location Error', 'Failed to fetch location. Please ensure your GPS is turned on.');
+            setLocation('');
+        }
     };
 
     const handleRegister = async () => {
