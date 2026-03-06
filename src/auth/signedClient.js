@@ -1,0 +1,191 @@
+import { createHash, randomBytes } from "crypto";
+import { ec as EC } from "elliptic";
+import axios from "axios";
+
+const ec = new EC("secp256k1");
+
+const DEFAULT_GATEWAY_URL = "http://localhost:3000";
+const DEFAULT_CLIENT_DID =
+  "did:web:truganic.github.io:did-documents:clients:farmer-client";
+
+export function generateNonce() {
+  return randomBytes(16).toString("hex");
+}
+
+export function createSignableMessage(
+  method,
+  path,
+  timestamp,
+  nonce,
+  body,
+  headers
+) {
+  const pathForPayload = path.startsWith("/") ? path : `/${path}`;
+
+  const excludedHeaders = new Set([
+    "x-signature",
+    "x-plugin-did",
+    "accept",
+    "accept-encoding",
+    "host",
+    "connection",
+    "user-agent",
+    "content-length",
+  ]);
+
+  const otherHeaders = {};
+  if (headers) {
+    for (const [key, value] of Object.entries(headers)) {
+      const lowerKey = key.toLowerCase();
+      if (!excludedHeaders.has(lowerKey)) {
+        // Use lowercase keys so payload headers match server's filteredHeaders
+        otherHeaders[lowerKey] = value;
+      }
+    }
+  }
+
+  const normalizedBody =
+    body !== undefined && body !== null ? body : {};
+
+  const payload = {
+    method: method,
+    path: pathForPayload,
+    timestamp: timestamp,
+    nonce: nonce,
+    body: normalizedBody,
+    headers: otherHeaders,
+  };
+
+  return JSON.stringify(payload);
+}
+
+export function signMessage(message, privateKeyHex) {
+  const keyPair = ec.keyFromPrivate(privateKeyHex, "hex");
+  const msgHash = createHash("sha256").update(message).digest();
+  const signature = keyPair.sign(msgHash);
+  const r = signature.r.toArray("be", 32);
+  const s = signature.s.toArray("be", 32);
+  const signatureBuffer = Buffer.concat([Buffer.from(r), Buffer.from(s)]);
+  return signatureBuffer.toString("base64");
+}
+
+export function generateAuthHeaders(config) {
+  const {
+    method,
+    path,
+    body,
+    clientDid,
+    privateKey,
+    timestamp: providedTimestamp,
+    nonce: providedNonce,
+    additionalHeaders = {},
+  } = config;
+
+  const timestamp = providedTimestamp || new Date().toISOString();
+  const nonce = providedNonce || generateNonce();
+
+  const requestHeaders = {
+    "content-type": "application/json",
+    "x-timestamp": timestamp,
+    "x-nonce": nonce,
+    ...additionalHeaders,
+  };
+
+  console.log("[client] Signature input (pre-payload)", {
+    method,
+    rawPath: path,
+    normalizedPath: path.startsWith("/") ? path : `/${path}`,
+    timestamp,
+    nonce,
+    body,
+    headers: requestHeaders,
+  });
+
+  const message = createSignableMessage(
+    method,
+    path,
+    timestamp,
+    nonce,
+    body,
+    requestHeaders
+  );
+
+  const signature = signMessage(message, privateKey);
+
+  const payloadSha256Hex = createHash("sha256")
+    .update(message)
+    .digest("hex");
+  const pathInPayload = path.startsWith("/") ? path : `/${path}`;
+  console.log("[client] Signed payload (post-payload)", {
+    pathInPayload,
+    method,
+    timestamp,
+    nonce,
+    payloadJson: message,
+    payloadSha256Hex,
+    signatureLength: signature.length,
+    signaturePreview: `${signature.slice(0, 20)}...${signature.slice(-10)}`,
+  });
+
+  const headers = {
+    "content-type": "application/json",
+    "x-plugin-did": clientDid,
+    "x-signature": signature,
+    "x-timestamp": timestamp,
+    "x-nonce": nonce,
+    ...additionalHeaders,
+  };
+
+  return {
+    headers,
+    message,
+    signature,
+    timestamp,
+    nonce,
+  };
+}
+
+export async function signedRequest(method, path, body, additionalHeaders) {
+  const gatewayUrl = process.env.GATEWAY_URL || DEFAULT_GATEWAY_URL;
+  const clientDid = process.env.CLIENT_DID || DEFAULT_CLIENT_DID;
+  const privateKey = process.env.CLIENT_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error(
+      "CLIENT_PRIVATE_KEY required. Set in .env (hex, no 0x). VC for this DID must include the required scope (e.g. write:farmer)."
+    );
+  }
+
+  const config = {
+    method,
+    path,
+    body,
+    clientDid,
+    privateKey,
+    gatewayUrl,
+    additionalHeaders,
+  };
+
+  const { headers } = generateAuthHeaders(config);
+  const url = `${gatewayUrl}${path}`;
+  const r = await axios({
+    method,
+    url,
+    data: body,
+    headers: { ...headers, "Content-Type": "application/json" },
+  });
+  return { data: r.data, status: r.status };
+}
+
+function buildFarmerPath(path) {
+  if (path.startsWith("/api/farmer")) {
+    return path;
+  }
+  const withoutLeadingSlash = path.startsWith("/") ? path : `/${path}`;
+  return `/api/farmer${withoutLeadingSlash}`;
+}
+
+export async function signedFarmerRequest(method, path, body, additionalHeaders) {
+  const fullPath = buildFarmerPath(path);
+  return signedRequest(method, fullPath, body, additionalHeaders);
+}
+
