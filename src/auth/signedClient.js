@@ -98,8 +98,14 @@ export async function generateAuthHeaders(config) {
   const timestamp = providedTimestamp || new Date().toISOString();
   const nonce = providedNonce || (await generateNonce());
 
+  // Only include content-type in signed payload when request has a body, so GET (no body)
+  // matches server payload (server often doesn't receive Content-Type for GET)
+  const hasBody =
+    body !== undefined &&
+    body !== null &&
+    (typeof body !== "object" || Object.keys(body).length > 0);
   const requestHeaders = {
-    "content-type": "application/json",
+    ...(hasBody ? { "content-type": "application/json" } : {}),
     "x-timestamp": timestamp,
     "x-nonce": nonce,
     ...additionalHeaders,
@@ -143,7 +149,7 @@ export async function generateAuthHeaders(config) {
   });
 
   const headers = {
-    "content-type": "application/json",
+    ...(hasBody ? { "content-type": "application/json" } : {}),
     "x-plugin-did": clientDid,
     "x-signature": signature,
     "x-timestamp": timestamp,
@@ -193,7 +199,12 @@ export async function signedRequest(method, path, body, additionalHeaders) {
     method,
     url,
     data: body,
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers: {
+      ...headers,
+      ...(body !== undefined && body !== null
+        ? { "Content-Type": "application/json" }
+        : {}),
+    },
   });
   return { data: r.data, status: r.status };
 }
