@@ -77,3 +77,16 @@ export async function apiRequest(method, path, body) {
   }
 }
 
+// Axios-style client so screens can use apiClient.post(path, body) unchanged
+function toAxiosResponse(status, data) {
+  return { data, status, statusText: status === 200 ? "OK" : status === 201 ? "Created" : "" };
+}
+
+export const apiClient = {
+  get: (path) => apiRequest("GET", path, undefined).then(({ status, data }) => toAxiosResponse(status, data)),
+  post: (path, body) => apiRequest("POST", path, body).then(({ status, data }) => toAxiosResponse(status, data)),
+  put: (path, body) => apiRequest("PUT", path, body).then(({ status, data }) => toAxiosResponse(status, data)),
+  patch: (path, body) => apiRequest("PATCH", path, body).then(({ status, data }) => toAxiosResponse(status, data)),
+  delete: (path) => apiRequest("DELETE", path, undefined).then(({ status, data }) => toAxiosResponse(status, data)),
+};
+
