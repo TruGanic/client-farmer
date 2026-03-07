@@ -47,6 +47,13 @@ export function createSignableMessage(
     }
   }
 
+  // Canonical key order so payload string matches server (signature verification)
+  const sortedHeaderKeys = Object.keys(otherHeaders).sort();
+  const canonicalHeaders = {};
+  for (const k of sortedHeaderKeys) {
+    canonicalHeaders[k] = otherHeaders[k];
+  }
+
   const normalizedBody =
     body !== undefined && body !== null ? body : {};
 
@@ -56,7 +63,7 @@ export function createSignableMessage(
     timestamp: timestamp,
     nonce: nonce,
     body: normalizedBody,
-    headers: otherHeaders,
+    headers: canonicalHeaders,
   };
 
   return JSON.stringify(payload);
