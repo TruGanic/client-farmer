@@ -35,6 +35,10 @@ export function createSignableMessage(
     "connection",
     "user-agent",
     "content-length",
+    "if-none-match",
+    "if-modified-since",
+    "if-match",
+    "if-range",
   ]);
 
   const otherHeaders = {};
