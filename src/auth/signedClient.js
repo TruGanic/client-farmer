@@ -1,4 +1,5 @@
-import { createHash, randomBytes } from "crypto";
+import * as Crypto from "expo-crypto";
+import { Buffer } from "buffer";
 import { ec as EC } from "elliptic";
 import axios from "axios";
 
@@ -8,8 +9,11 @@ const DEFAULT_GATEWAY_URL = "http://localhost:3000";
 const DEFAULT_CLIENT_DID =
   "did:web:truganic.github.io:did-documents:clients:farmer-client";
 
-export function generateNonce() {
-  return randomBytes(16).toString("hex");
+export async function generateNonce() {
+  const bytes = await Crypto.getRandomBytesAsync(16);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function createSignableMessage(
@@ -38,7 +42,6 @@ export function createSignableMessage(
     for (const [key, value] of Object.entries(headers)) {
       const lowerKey = key.toLowerCase();
       if (!excludedHeaders.has(lowerKey)) {
-        // Use lowercase keys so payload headers match server's filteredHeaders
         otherHeaders[lowerKey] = value;
       }
     }
@@ -59,9 +62,13 @@ export function createSignableMessage(
   return JSON.stringify(payload);
 }
 
-export function signMessage(message, privateKeyHex) {
+export async function signMessage(message, privateKeyHex) {
   const keyPair = ec.keyFromPrivate(privateKeyHex, "hex");
-  const msgHash = createHash("sha256").update(message).digest();
+  const hashHex = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    message
+  );
+  const msgHash = Buffer.from(hashHex, "hex");
   const signature = keyPair.sign(msgHash);
   const r = signature.r.toArray("be", 32);
   const s = signature.s.toArray("be", 32);
@@ -69,7 +76,7 @@ export function signMessage(message, privateKeyHex) {
   return signatureBuffer.toString("base64");
 }
 
-export function generateAuthHeaders(config) {
+export async function generateAuthHeaders(config) {
   const {
     method,
     path,
@@ -82,7 +89,7 @@ export function generateAuthHeaders(config) {
   } = config;
 
   const timestamp = providedTimestamp || new Date().toISOString();
-  const nonce = providedNonce || generateNonce();
+  const nonce = providedNonce || (await generateNonce());
 
   const requestHeaders = {
     "content-type": "application/json",
@@ -110,11 +117,12 @@ export function generateAuthHeaders(config) {
     requestHeaders
   );
 
-  const signature = signMessage(message, privateKey);
+  const signature = await signMessage(message, privateKey);
 
-  const payloadSha256Hex = createHash("sha256")
-    .update(message)
-    .digest("hex");
+  const payloadSha256Hex = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    message
+  );
   const pathInPayload = path.startsWith("/") ? path : `/${path}`;
   console.log("[client] Signed payload (post-payload)", {
     pathInPayload,
@@ -165,7 +173,7 @@ export async function signedRequest(method, path, body, additionalHeaders) {
     additionalHeaders,
   };
 
-  const { headers } = generateAuthHeaders(config);
+  const { headers } = await generateAuthHeaders(config);
   const url = `${gatewayUrl}${path}`;
   const r = await axios({
     method,
@@ -188,4 +196,3 @@ export async function signedFarmerRequest(method, path, body, additionalHeaders)
   const fullPath = buildFarmerPath(path);
   return signedRequest(method, fullPath, body, additionalHeaders);
 }
-
