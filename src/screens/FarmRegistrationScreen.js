@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MapPin, Sprout } from 'lucide-react-native';
 import * as Location from 'expo-location';
@@ -76,68 +76,77 @@ const FarmRegistrationScreen = () => {
     };
 
     return (
-        <ScrollView className="flex-1 bg-green-50 p-6">
-            <View className="items-center mb-8 mt-4">
-                <View className="bg-green-100 p-3 rounded-full mb-3">
-                    <Sprout color="#16a34a" size={32} />
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            className="bg-green-50"
+        >
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, padding: 24, paddingBottom: 40 }}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View className="items-center mb-8 mt-4">
+                    <View className="bg-green-100 p-3 rounded-full mb-3">
+                        <Sprout color="#16a34a" size={32} />
+                    </View>
+                    <Text className="text-2xl font-bold text-green-800">Register New Farm</Text>
+                    <Text className="text-green-600 mt-1">Step 2 of 2: Farm Details</Text>
                 </View>
-                <Text className="text-2xl font-bold text-green-800">Register New Farm</Text>
-                <Text className="text-green-600 mt-1">Step 2 of 2: Farm Details</Text>
-            </View>
 
-            <View className="space-y-5">
-                {/* Farm Details */}
-                <View>
-                    <Text className="text-green-800 font-bold text-lg mb-3">Farm Details</Text>
+                <View className="space-y-5">
+                    {/* Farm Details */}
+                    <View>
+                        <Text className="text-green-800 font-bold text-lg mb-3">Farm Details</Text>
 
-                    <View className="mb-4">
-                        <Text className="text-green-700 font-medium mb-1 ml-1">Farm Name</Text>
-                        <TextInput
-                            className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
-                            placeholder="e.g. Green Valley Farm"
-                            value={farmName}
-                            onChangeText={setFarmName}
-                        />
-                    </View>
-
-                    <View className="mb-4">
-                        <Text className="text-green-700 font-medium mb-1 ml-1">Total Area (Acres)</Text>
-                        <TextInput
-                            className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
-                            placeholder="e.g. 5.5"
-                            keyboardType="numeric"
-                            value={totalArea}
-                            onChangeText={setTotalArea}
-                        />
-                    </View>
-
-                    <View className="mb-4">
-                        <Text className="text-green-700 font-medium mb-1 ml-1">Location</Text>
-                        <View className="flex-row items-center">
+                        <View className="mb-4">
+                            <Text className="text-green-700 font-medium mb-1 ml-1">Farm Name</Text>
                             <TextInput
-                                className="flex-1 bg-white border border-green-200 rounded-l-xl p-4 text-gray-800"
-                                placeholder="GPS Coordinates"
-                                value={location || ''}
-                                editable={false}
+                                className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
+                                placeholder="e.g. Green Valley Farm"
+                                value={farmName}
+                                onChangeText={setFarmName}
                             />
-                            <TouchableOpacity
-                                className="bg-green-600 p-4 rounded-r-xl"
-                                onPress={handleGetLocation}
-                            >
-                                <MapPin color="white" size={24} />
-                            </TouchableOpacity>
+                        </View>
+
+                        <View className="mb-4">
+                            <Text className="text-green-700 font-medium mb-1 ml-1">Total Area (Acres)</Text>
+                            <TextInput
+                                className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
+                                placeholder="e.g. 5.5"
+                                keyboardType="numeric"
+                                value={totalArea}
+                                onChangeText={setTotalArea}
+                            />
+                        </View>
+
+                        <View className="mb-4">
+                            <Text className="text-green-700 font-medium mb-1 ml-1">Location</Text>
+                            <View className="flex-row items-center">
+                                <TextInput
+                                    className="flex-1 bg-white border border-green-200 rounded-l-xl p-4 text-gray-800"
+                                    placeholder="GPS Coordinates"
+                                    value={location || ''}
+                                    editable={false}
+                                />
+                                <TouchableOpacity
+                                    className="bg-green-600 p-4 rounded-r-xl"
+                                    onPress={handleGetLocation}
+                                >
+                                    <MapPin color="white" size={24} />
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
 
-                <TouchableOpacity
-                    className="bg-green-700 p-4 rounded-xl items-center mt-4 mb-8 shadow-sm"
-                    onPress={handleRegister}
-                >
-                    <Text className="text-white font-bold text-lg">Complete Registration</Text>
-                </TouchableOpacity>
-            </View>
-        </ScrollView>
+                    <TouchableOpacity
+                        className="bg-green-700 p-4 rounded-xl items-center mt-4 mb-8 shadow-sm"
+                        onPress={handleRegister}
+                    >
+                        <Text className="text-white font-bold text-lg">Complete Registration</Text>
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 

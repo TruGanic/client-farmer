@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Alert, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar, ChevronDown } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -100,92 +100,101 @@ const InputLogScreen = () => {
     };
 
     return (
-        <ScrollView className="flex-1 bg-green-50 p-6">
-            <Text className="text-2xl font-bold text-green-800 mb-6">Log Input</Text>
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={{ flex: 1 }}
+            className="bg-green-50"
+        >
+            <ScrollView
+                contentContainerStyle={{ flexGrow: 1, padding: 24, paddingBottom: 40 }}
+                keyboardShouldPersistTaps="handled"
+            >
+                <Text className="text-2xl font-bold text-green-800 mb-6">Log Input</Text>
 
-            {/* Date Picker */}
-            <View className="mb-4">
-                <Text className="text-green-800 font-medium mb-1 ml-1">Date</Text>
-                <TouchableOpacity
-                    className="bg-white border border-green-200 rounded-xl p-4 flex-row items-center"
-                    onPress={() => setShowDatePicker(true)}
-                >
-                    <Calendar size={20} color="#16a34a" className="mr-3" />
-                    <Text className="text-gray-800">{date.toLocaleDateString()}</Text>
-                </TouchableOpacity>
-                {showDatePicker && (
-                    <DateTimePicker
-                        value={date}
-                        mode="date"
-                        display="default"
-                        onChange={handleDateChange}
-                    />
-                )}
-            </View>
+                {/* Date Picker */}
+                <View className="mb-4">
+                    <Text className="text-green-800 font-medium mb-1 ml-1">Date</Text>
+                    <TouchableOpacity
+                        className="bg-white border border-green-200 rounded-xl p-4 flex-row items-center"
+                        onPress={() => setShowDatePicker(true)}
+                    >
+                        <Calendar size={20} color="#16a34a" className="mr-3" />
+                        <Text className="text-gray-800">{date.toLocaleDateString()}</Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={date}
+                            mode="date"
+                            display="default"
+                            onChange={handleDateChange}
+                        />
+                    )}
+                </View>
 
-            {/* Input Category (Highlighted) */}
-            <Dropdown
-                label="Input Category"
-                value={category}
-                options={categories}
-                onSelect={setCategory}
-                highlighted={true}
-            />
-
-            {/* Product Name */}
-            <View className="mb-4">
-                <Text className="text-green-800 font-medium mb-1 ml-1">Product Name</Text>
-                <TextInput
-                    className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
-                    placeholder="e.g. Chicken manure, Compost"
-                    value={productName}
-                    onChangeText={setProductName}
+                {/* Input Category (Highlighted) */}
+                <Dropdown
+                    label="Input Category"
+                    value={category}
+                    options={categories}
+                    onSelect={setCategory}
+                    highlighted={true}
                 />
-            </View>
 
-            {/* Where Applied */}
-            <Dropdown
-                label="Where Applied"
-                value={plot}
-                options={plots}
-                onSelect={setPlot}
-            />
-
-            {/* Quantity with Unit Toggle */}
-            <View className="mb-6">
-                <Text className="text-green-800 font-medium mb-1 ml-1">Quantity</Text>
-                <View className="flex-row">
+                {/* Product Name */}
+                <View className="mb-4">
+                    <Text className="text-green-800 font-medium mb-1 ml-1">Product Name</Text>
                     <TextInput
-                        className="flex-1 bg-white border border-green-200 rounded-l-xl p-4 text-gray-800"
-                        placeholder="0.00"
-                        keyboardType="numeric"
-                        value={quantity}
-                        onChangeText={setQuantity}
+                        className="bg-white border border-green-200 rounded-xl p-4 text-gray-800"
+                        placeholder="e.g. Chicken manure, Compost"
+                        value={productName}
+                        onChangeText={setProductName}
                     />
-                    <View className="flex-row bg-green-100 rounded-r-xl border-t border-b border-r border-green-200 overflow-hidden">
-                        <TouchableOpacity
-                            className={`px-4 justify-center ${unit === 'kg' ? 'bg-green-600' : 'bg-transparent'}`}
-                            onPress={() => setUnit('kg')}
-                        >
-                            <Text className={`font-bold ${unit === 'kg' ? 'text-white' : 'text-green-800'}`}>kg</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            className={`px-4 justify-center ${unit === 'L' ? 'bg-green-600' : 'bg-transparent'}`}
-                            onPress={() => setUnit('L')}
-                        >
-                            <Text className={`font-bold ${unit === 'L' ? 'text-white' : 'text-green-800'}`}>L</Text>
-                        </TouchableOpacity>
+                </View>
+
+                {/* Where Applied */}
+                <Dropdown
+                    label="Where Applied"
+                    value={plot}
+                    options={plots}
+                    onSelect={setPlot}
+                />
+
+                {/* Quantity with Unit Toggle */}
+                <View className="mb-6">
+                    <Text className="text-green-800 font-medium mb-1 ml-1">Quantity</Text>
+                    <View className="flex-row">
+                        <TextInput
+                            className="flex-1 bg-white border border-green-200 rounded-l-xl p-4 text-gray-800"
+                            placeholder="0.00"
+                            keyboardType="numeric"
+                            value={quantity}
+                            onChangeText={setQuantity}
+                        />
+                        <View className="flex-row bg-green-100 rounded-r-xl border-t border-b border-r border-green-200 overflow-hidden">
+                            <TouchableOpacity
+                                className={`px-4 justify-center ${unit === 'kg' ? 'bg-green-600' : 'bg-transparent'}`}
+                                onPress={() => setUnit('kg')}
+                            >
+                                <Text className={`font-bold ${unit === 'kg' ? 'text-white' : 'text-green-800'}`}>kg</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                className={`px-4 justify-center ${unit === 'L' ? 'bg-green-600' : 'bg-transparent'}`}
+                                onPress={() => setUnit('L')}
+                            >
+                                <Text className={`font-bold ${unit === 'L' ? 'text-white' : 'text-green-800'}`}>L</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
-            </View>
 
-            <TouchableOpacity
-                className="bg-green-700 p-4 rounded-xl items-center shadow-sm mb-10"
-                onPress={handleSave}
-            >
-                <Text className="text-white font-bold text-lg">Save Record</Text>
-            </TouchableOpacity>
-        </ScrollView>
+                <TouchableOpacity
+                    className="bg-green-700 p-4 rounded-xl items-center shadow-sm mb-10"
+                    onPress={handleSave}
+                >
+                    <Text className="text-white font-bold text-lg">Save Record</Text>
+                </TouchableOpacity>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 
