@@ -153,13 +153,20 @@ export async function generateAuthHeaders(config) {
   };
 }
 
+// Expo only exposes EXPO_PUBLIC_* vars to the bundle; support both for .env compatibility
+function getEnv(name, publicName) {
+  return process.env[publicName] || process.env[name];
+}
+
 export async function signedRequest(method, path, body, additionalHeaders) {
-  const gatewayUrl = process.env.GATEWAY_URL || DEFAULT_GATEWAY_URL;
-  const clientDid = process.env.CLIENT_DID || DEFAULT_CLIENT_DID;
-  const privateKey = process.env.CLIENT_PRIVATE_KEY;
+  const gatewayUrl =
+    getEnv("GATEWAY_URL", "EXPO_PUBLIC_GATEWAY_URL") || DEFAULT_GATEWAY_URL;
+  const clientDid =
+    getEnv("CLIENT_DID", "EXPO_PUBLIC_CLIENT_DID") || DEFAULT_CLIENT_DID;
+  const privateKey = getEnv("CLIENT_PRIVATE_KEY", "EXPO_PUBLIC_CLIENT_PRIVATE_KEY");
   if (!privateKey) {
     throw new Error(
-      "CLIENT_PRIVATE_KEY required. Set in .env (hex, no 0x). VC for this DID must include the required scope (e.g. write:farmer)."
+      "CLIENT_PRIVATE_KEY required. Set in .env with EXPO_PUBLIC_CLIENT_PRIVATE_KEY (hex, no 0x). VC for this DID must include the required scope (e.g. write:farmer)."
     );
   }
 
